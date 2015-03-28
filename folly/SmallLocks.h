@@ -47,9 +47,10 @@
 #include <glog/logging.h>
 #include <folly/Portability.h>
 
-#if !FOLLY_X64
-# error "SmallLocks.h is currently x64-only."
-#endif
+// ajz01 commented for i386 support not sure if this will work
+//#if !FOLLY_X64
+//# error "SmallLocks.h is currently x64-only."
+//#endif
 
 namespace folly {
 

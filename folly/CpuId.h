@@ -27,6 +27,19 @@ namespace folly {
  * Supports CPUID feature flags (EAX=1) and extended features (EAX=7, ECX=0).
  * Values from http://www.intel.com/content/www/us/en/processors/processor-identification-cpuid-instruction-note.html
  */
+
+// ajz01 32 bit cpuid to avoid PIC clobbering
+inline void __cpuid_i386(uint32_t reg[4], uint32_t op)
+{
+   asm volatile("pushl %%ebx      \n\t" /* save %ebx */
+      "cpuid            \n\t"
+      "movl %%ebx, %1   \n\t" /* save what cpuid just put in %ebx */
+      "popl %%ebx       \n\t" /* restore the old %ebx */
+      : "=a"(reg[0]), "=r"(reg[1]), "=c"(reg[2]), "=d"(reg[3])
+      : "a"(op)
+      , "c"(0));
+}
+
 class CpuId {
  public:
   CpuId() {
@@ -45,13 +58,28 @@ class CpuId {
       f7c_ = reg[2];
     }
 #elif FOLLY_X64 || defined(__i386__)
-    uint32_t n;
+    // ajz01 causes PIC clobbering ebx used as PIC for i386 systems
+    /*uint32_t n;
     __asm__("cpuid" : "=a"(n) : "a"(0) : "ebx", "edx", "ecx");
     if (n >= 1) {
       __asm__("cpuid" : "=c"(f1c_), "=d"(f1d_) : "a"(1) : "ebx");
     }
     if (n >= 7) {
       __asm__("cpuid" : "=b"(f7b_), "=c"(f7c_) : "a"(7), "c"(0) : "edx");
+    }*/
+    // ajz01 use __cpcuid_i386 instead
+    uint32_t reg[4];
+    __cpuid_i386(reg, 0);
+    uint32_t n = reg[0];
+    if (n >= 1) {
+      __cpuid_i386(reg, 1);
+      f1c_ = reg[2];
+      f1d_ = reg[3];
+    }
+    if (n >= 7) {
+      __cpuid_i386(reg, 7);
+      f7b_ = reg[1];
+      f7c_ = reg[2];
     }
 #endif
   }

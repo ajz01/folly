@@ -28,9 +28,14 @@ int popcount_builtin(unsigned int x) {
   return __builtin_popcount(x);
 }
 
+// ajz01 32-bit systems do not support popcntq
+#if !defined(__i386__)
+
 int popcountll_builtin(unsigned long long x) {
   return __builtin_popcountll(x);
 }
+
+#endif //!defined(__i386__)
 
 #if FOLLY_HAVE_IFUNC && !defined(FOLLY_SANITIZE_ADDRESS)
 
@@ -43,24 +48,40 @@ int popcount_inst(unsigned int x) {
   return n;
 }
 
+// ajz01 32-bit systems do not support popcntq
+#if !defined(__i386__)
+
 int popcountll_inst(unsigned long long x) {
   unsigned long long n;
   asm ("popcntq %1, %0" : "=r" (n) : "r" (x));
   return n;
 }
 
+#endif //!defined(__i386__)
+
 typedef decltype(popcount_builtin) Type_popcount;
+
+// ajz01 32-bit systems do not support popcntq
+#if !defined(__i386__)
+
 typedef decltype(popcountll_builtin) Type_popcountll;
+
+#endif //!defined(__i386__)
 
 // This function is called on startup to resolve folly::detail::popcount
 extern "C" Type_popcount* folly_popcount_ifunc() {
   return folly::CpuId().popcnt() ?  popcount_inst : popcount_builtin;
 }
 
+// ajz01 32-bit systems do not support popcntq
+#if !defined(__i386__)
+
 // This function is called on startup to resolve folly::detail::popcountll
 extern "C" Type_popcountll* folly_popcountll_ifunc() {
   return folly::CpuId().popcnt() ?  popcountll_inst : popcountll_builtin;
 }
+
+#endif //!defined(__i386__)
 
 #endif  // FOLLY_HAVE_IFUNC && !defined(FOLLY_SANITIZE_ADDRESS)
 
@@ -78,6 +99,9 @@ int popcount(unsigned int x)
 {  return popcount_builtin(x); }
 #endif
 
+// ajz01 32-bit systems do not support popcntq
+#if !defined(__i386__)
+
 // Call folly_popcount_ifunc on startup to resolve to either popcountll_inst
 // or popcountll_builtin
 int popcountll(unsigned long long x)
@@ -86,6 +110,8 @@ int popcountll(unsigned long long x)
 #else
 {  return popcountll_builtin(x); }
 #endif
+
+#endif //!defined(__i386__)
 
 }  // namespace detail
 }  // namespace folly
